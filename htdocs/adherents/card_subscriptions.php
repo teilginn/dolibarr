@@ -230,6 +230,9 @@ if ($user->rights->adherent->cotisation->creer && $action == 'cotisation' && ! $
     {
         $datesubend=dol_time_plus_duree(dol_time_plus_duree($datecotisation,$defaultdelay,$defaultdelayunit),-1,'d');
     }
+    if (!$paymentdate) {
+        $paymentdate = $datecotisation;
+    }
     if (($option == 'bankviainvoice' || $option == 'bankdirect') && ! $paymentdate)
     {
         $error++;
@@ -830,9 +833,9 @@ if ($rowid)
 
         $today=dol_now();
         $datefrom=0;
-        $dateto=0;
+        $dateto=dol_mktime(0,0,0,8,31,2013);//+AAEE:FIXME make it dynamic based on subscription date. 
         $paymentdate=-1;
-
+        
         // Date payment
         if (GETPOST('paymentyear') && GETPOST('paymentmonth') && GETPOST('paymentday'))
         {
@@ -876,12 +879,15 @@ if ($rowid)
         if ($adht->cotisation)
         {
             // Amount
+            $amount = GETPOST('cotisation'); 
             print '<tr><td class="fieldrequired">'.$langs->trans("Amount").'</td><td><input type="text" name="cotisation" size="6" value="'.GETPOST('cotisation').'"> '.$langs->trans("Currency".$conf->currency).'</td></tr>';
 
             // Label
             print '<tr><td class="fieldrequired">'.$langs->trans("Label").'</td>';
-            print '<td><input name="label" type="text" size="32" value="'.$langs->trans("Subscription").' ';
-            print dol_print_date(($datefrom?$datefrom:time()),"%Y").'" ></td></tr>';
+            //-print '<td><input name="label" type="text" size="32" value="'.$langs->trans("Subscription").' ';//-AAEE
+            //-print dol_print_date(($datefrom?$datefrom:time()),"%Y").'" ></td></tr>';
+            print '<td><input name="label" type="text" size="32" value="'."Appel &agrave; cotisation 2012/2013".'"></td></tr>'; //+AAEE:FIXME
+            //print dol_print_date(($datefrom?$datefrom:time()),"%Y")."/".dol_print_date(($dateto?$datefrom:time()),"%Y").'" ></td></tr>';
 
             // Complementary action
             if (! empty($conf->banque->enabled) || ! empty($conf->facture->enabled))
@@ -950,6 +956,7 @@ if ($rowid)
                 // Date of payment
                 print '<tr class="bankswitchclass"><td class="fieldrequired">'.$langs->trans("DatePayment").'</td><td>';
                 $form->select_date(isset($paymentdate)?$paymentdate:-1,'payment',0,0,1,'cotisation',1,1);
+                print '<input name="paymentissubscription" type="checkbox" checked="checked">Utiliser la date de cotisation</input>';//+AAEE:FIXME
                 print "</td></tr>\n";
 
                 print '<tr class="bankswitchclass2"><td>'.$langs->trans('Numero');

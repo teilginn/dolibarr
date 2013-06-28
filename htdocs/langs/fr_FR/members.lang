@@ -204,3 +204,6 @@ DOLIBARRFOUNDATION_PAYMENT_FORM=Pour réaliser le paiement de votre cotisation p
 ByProperties=Par caractéristiques
 MembersStatisticsByProperties=Statistiques des anciens par caractéristiques
 MembersByNature=Anciens par nature
+CallSubscription=Appel à cotisation
+UsePaiementAsSubscriptionDate=Utiliser la date de cotisation
+
