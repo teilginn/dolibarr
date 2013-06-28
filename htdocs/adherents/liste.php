@@ -21,15 +21,28 @@
  *      \file       htdocs/adherents/liste.php
  *      \ingroup    member
  *		\brief      Page to list all members of foundation
+ *		
+ * +AAEE -------------------------------------------------------------------
+ * Modified by François Terrot for AAEE foundation (ESIGETEL Alumni : http://www.esigetel.org/)
+ * 19/06/13: Modify the liste display - activation using $conf_aaee
+ * - hide reference, login
+ * ~ only display a small icon when the member is associated with a thirdparty (do not display thirdparty name)
+ *
+ * +AAEE -------------------------------------------------------------------
+ *
  */
 
 require '../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formother.class.php';
 require_once DOL_DOCUMENT_ROOT.'/adherents/class/adherent.class.php';
 require_once DOL_DOCUMENT_ROOT.'/adherents/class/adherent_type.class.php';
+require_once DOL_DOCUMENT_ROOT.'/core/lib/functions.lib.php'; //+AAEE: img_object (at least)
+
 
 $langs->load("members");
 $langs->load("companies");
+
+$conf_aaee=(1==1); //+AAEE 
 
 // Security check
 $result=restrictedArea($user,'adherent');
@@ -57,6 +70,7 @@ $pageprev = $page - 1;
 $pagenext = $page + 1;
 if (! $sortorder) { $sortorder=($filter=='outofdate'?"ASC":"DESC"); }
 if (! $sortfield) { $sortfield=($filter=='outofdate'?"d.datefin":"d.nom"); }
+
 
 if (GETPOST("button_removefilter"))
 {
@@ -88,6 +102,7 @@ $now=dol_now();
 
 $sql = "SELECT d.rowid, d.login, d.nom as lastname, d.prenom as firstname, d.societe as company, d.fk_soc,";
 $sql.= " d.datefin,";
+if ($conf_aaee) { $sql.= " d.dateh,";}
 $sql.= " d.email, d.fk_adherent_type as type_id, d.morphy, d.statut,";
 $sql.= " t.libelle as type, t.cotisation";
 $sql.= " FROM ".MAIN_DB_PREFIX."adherent as d";
@@ -215,11 +230,14 @@ if ($resql)
 	}
 
 	print '<tr class="liste_titre">';
+        if(!$conf_aaee) //+AAEE: Remove Reference from list ----------------
 	print_liste_field_titre($langs->trans("Ref"),$_SERVER["PHP_SELF"],"d.rowid",$param,"","",$sortfield,$sortorder);
 	print_liste_field_titre($langs->trans("Name")." / ".$langs->trans("Company"),$_SERVER["PHP_SELF"],"d.nom",$param,"","",$sortfield,$sortorder);
+        if(!$conf_aaee) //+AAEE: Remove Login from list --------------------
 	print_liste_field_titre($langs->trans("Login"),$_SERVER["PHP_SELF"],"d.login",$param,"","",$sortfield,$sortorder);
 	print_liste_field_titre($langs->trans("Type"),$_SERVER["PHP_SELF"],"t.libelle",$param,"","",$sortfield,$sortorder);
 	print_liste_field_titre($langs->trans("Person"),$_SERVER["PHP_SELF"],"d.morphy",$param,"","",$sortfield,$sortorder);
+        if(!$conf_aaee) //+AAEE: Remove Email from list --------------------
 	print_liste_field_titre($langs->trans("EMail"),$_SERVER["PHP_SELF"],"d.email",$param,"","",$sortfield,$sortorder);
 	print_liste_field_titre($langs->trans("Status"),$_SERVER["PHP_SELF"],"d.statut,d.datefin",$param,"","",$sortfield,$sortorder);
 	print_liste_field_titre($langs->trans("EndSubscription"),$_SERVER["PHP_SELF"],"d.datefin",$param,"",'align="center"',$sortfield,$sortorder);
@@ -229,14 +247,19 @@ if ($resql)
 	// Lignes des champs de filtre
 	print '<tr class="liste_titre">';
 
+        if(!$conf_aaee) { //+AAEE: Remove Reference from list --------------
 	print '<td class="liste_titre" align="left">';
 	print '<input class="flat" type="text" name="search_ref" value="'.$search_ref.'" size="4"></td>';
+        } //+AAEE: Remove Reference from list ------------------------------
 
 	print '<td class="liste_titre" align="left">';
 	print '<input class="flat" type="text" name="search_nom" value="'.$search_nom.'" size="12"></td>';
 
+
+        if(!$conf_aaee) { //+AAEE: Remove Login from list ------------------
 	print '<td class="liste_titre" align="left">';
 	print '<input class="flat" type="text" name="search_login" value="'.$search_login.'" size="7"></td>';
+        } //+AAEE: Remove Login from list ----------------------------------
 
 	print '<td class="liste_titre">';
 	$listetype=$membertypestatic->liste_array();
@@ -277,43 +300,64 @@ if ($resql)
 		} else {
 			$companyname=$objp->company;
 		}
+                //+AAEE-BEGIN:Add partner support --------------------------
+                $partnername='';
+                //+AAEE-END ------------------------------------------------
 
 		$var=!$var;
 		print "<tr ".$bc[$var].">";
 
+                if(!$conf_aaee) { //+AAEE: Remove Reference from list ------
 		// Ref
 		print "<td>";
 		print $memberstatic->getNomUrl(1);
 		print "</td>\n";
+                } //+AAEE: Remove Reference from list ----------------------
 
 		// Lastname
 		print "<td><a href=\"fiche.php?rowid=$objp->rowid\">";
 		print ((! empty($objp->lastname) || ! empty($objp->firstname)) ? dol_trunc($memberstatic->getFullName($langs)) : '');
+                if(!$conf_aaee) { //+AAEE: Replace thirdparty name by an icon
 		print (((! empty($objp->lastname) || ! empty($objp->firstname)) && ! empty($companyname)) ? ' / ' : '');
 		print (! empty($companyname) ? dol_trunc($companyname, 32) : '');
+                } else { //+AAEE - BEGIN Replace thirdparty name by an icon
+                    print(! empty($companyname) ? img_object($companyname,'user'): '');
+                    print(! empty($partnername) ? img_object($partnername,'group'): '');
+                } //+AAEE - END --------------------------------------------
 		print "</a></td>\n";
 
+                if(!$conf_aaee) { //+AAEE: Remove Login from list ----------
 		// Login
 		print "<td>".$objp->login."</td>\n";
+                } //+AAEE: Remove Login from list --------------------------
 
 		// Type
 		$membertypestatic->id=$objp->type_id;
 		$membertypestatic->libelle=$objp->type;
 		print '<td nowrap="nowrap">';
-		print $membertypestatic->getNomUrl(1,32);
+		//-print $membertypestatic->getNomUrl(1,32);//-AAEE ----------------------
+		print $membertypestatic->getNomUrl(!$conf_aaee,32);//+AEEE:Remove icon ---
 		print '</td>';
 
 		// Moral/Physique
 		print "<td>".$memberstatic->getmorphylib($objp->morphy)."</td>\n";
 
+
+                if(!$conf_aaee) { //+AAEE: Remove Email from list ----------
 		// EMail
 		print "<td>".dol_print_email($objp->email,0,0,1)."</td>\n";
+                } //+AAEE: Remove Email from list --------------------------
 
 		// Statut
 		print '<td nowrap="nowrap">';
 		print $memberstatic->LibStatut($objp->statut,$objp->cotisation,$datefin,2);
 		print "</td>";
 
+               
+                if($conf_aaee) { //+AAEE-BEGIN:Start of subscription date -
+
+
+                } //+AAEE-END ----------------------------------------------
 		// End of subscription date
 		if ($datefin)
 		{
