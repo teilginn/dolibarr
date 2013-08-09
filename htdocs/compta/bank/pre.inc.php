@@ -74,6 +74,7 @@ function llxHeader($head = '', $title='', $help_url='', $target='', $disablejs=0
 			{
 				$objp = $db->fetch_object($resql);
 				$menu->add('/compta/bank/fiche.php?id='.$objp->rowid,$objp->label,1,$user->rights->banque->lire);
+                                $menu->add('/compta/bank/account.php?id='.$objp->rowid,$langs->trans("Transactions"),2,$user->rights->banque->lire);/* AAEE */
                 if ($objp->rappro && $objp->courant != 2 && empty($objp->clos))  // If not cash account and not closed and can be reconciliate
                 {
 				    $menu->add('/compta/bank/rappro.php?account='.$objp->rowid,$langs->trans("Conciliate"),2,$user->rights->banque->consolidate);
