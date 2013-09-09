@@ -86,6 +86,24 @@ function llxHeader($head = '', $title='', $help_url='', $target='', $disablejs=0
 		$db->free($resql);
 	}
 
+
+        $menu->add('',"Virements AAEE préremplis...", 0, $user->rights->banque->lire);
+        // Commission PayPal
+        $menu->add('/compta/bank/virement.php?label=REMISE CHQ&account_from=7&account_to=1'
+                  ,'Remise de chèques',1, $user->rights->banque->lire);
+        $menu->add('/compta/bank/virement.php?label=Paypal Montant de la commission&amount=1.72&account_from=3&account_to=6'
+                  ,'Commission Paypal 1.72€',1, $user->rights->banque->lire);
+        $menu->add('/compta/bank/virement.php?label=REMISE CB BT 45,00 COM 0,32 = 44.68&amount=44.68&amount2=0.32&account_from=5&account_to=1&account_to2=6'
+                  ,'Remise Carte Bleue 45€',1, $user->rights->banque->lire);
+        $menu->add('/compta/bank/virement.php?label=REMISE CB BT 50,00 COM 0,35 = 49.65&amount=49.65&amount2=0.35&account_from=5&account_to=1&account_to2=6'
+                  ,'Remise Carte Bleue 50€',1, $user->rights->banque->lire);
+        $menu->add('/compta/bank/virement.php?label=REMISE CB BT 90,00 COM 0,63 = 89.37&amount=89.37&amount2=0.63&account_from=5&account_to=1&account_to2=6'
+                  ,'Remise Carte Bleue 90€',1, $user->rights->banque->lire);
+        $menu->add('/compta/bank/virement.php?label=REMISE CB BT 135,00 COM 0,95 = 134.05&amount=134.05&amount2=0.95&account_from=5&account_to=1&account_to2=6'
+                  ,'Remise Carte Bleue 135€',1, $user->rights->banque->lire);
+        $menu->add('/compta/bank/virement.php?label=REMISE CB BT 180,00 COM 1.26 = 178.74&amount=178.74&amount2=1.26&account_from=5&account_to=1&account_to2=6'
+                  ,'Remise Carte Bleue 180€',1, $user->rights->banque->lire);
+
 	left_menu('', $help_url, '', $menu->liste, 1);
     main_area();
 }
