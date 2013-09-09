@@ -49,6 +49,10 @@ if ($action == 'add')
 	$num_chq= GETPOST('num_chq','alpha');
 	$amount2= GETPOST('amount2','int');
 
+        $account2A = GETPOST('account_to2','int');
+        if (! $account2A) {
+            $account2A = -1;
+        }
 	if (! $label)
 	{
 		$error=1;
@@ -69,11 +73,11 @@ if ($action == 'add')
 		$error=1;
 		$mesg.="<div class=\"error\">".$langs->trans("ErrorFieldRequired",$langs->transnoentities("TransferTo"))."</div>";
 	}
-        if (GETPOST('account_to','int')) {
+        if ($account2A>-1) {
             if (! $amount2)
             {
                 $error=1;
-                $mesg.="<div class=\"error\">".$langs->trans("ErrorFieldRequired",$langs->transnoentities("Amount"))." Commission</div>";
+                $mesg.="<div class=\"error\">".$langs->trans("ErrorFieldRequired",$langs->transnoentities("Amount")).GETPOST('account_to2','int')." Commission</div>";
             }
 
         }
@@ -87,7 +91,7 @@ if ($action == 'add')
 		$accountto=new Account($db);
 		$accountto->fetch(GETPOST('account_to','int'));
 
-                if (GETPOST('account_to2','int')) {
+                if ($account2A>-1) {
                     $accountto2 = new Account($db);
                     $accountto2->fetch(GETPOST('account_to2','int'));
                     if ($accountto2->id == $accountfrom->id) {
@@ -115,7 +119,7 @@ if ($action == 'add')
 				$typefrom='LIQ';
 				$typeto='LIQ';
 			}
-                        if (GETPOST('account_to2','int')) {
+                        if ($account2A>-1) {
                             // By default, electronic transfert from bank to bank
                             $typefrom2='PRE';
                             $typeto2='VIR';
@@ -132,7 +136,7 @@ if ($action == 'add')
 			if (! $error) $bank_line_id_to = $accountto->addline($dateo, $typeto, $label, price2num($amount), $num_chq, '', $user);
 			if (! ($bank_line_id_to > 0)) $error++;
 
-                        if (GETPOST('account_to2','int')) {
+                        if ($account2A>-1) {
                             if (! $error) $bank_line_id_from2 = $accountfrom->addline($dateo, $typefrom2, $label, -1*price2num($amount2), $num_chq, '', $user);
                             if (! ($bank_line_id_from2 > 0)) $error++;
                             if (! $error) $bank_line_id_to2 = $accountto2->addline($dateo, $typeto2, $label, price2num($amount2), $num_chq, '', $user);
@@ -145,7 +149,7 @@ if ($action == 'add')
                         if (! $error) $result=$accountto->add_url_line($bank_line_id_to, $bank_line_id_from, DOL_URL_ROOT.'/compta/bank/ligne.php?rowid=', '(banktransfert)', 'banktransfert');
 			if (! ($result > 0)) $error++;
 
-                        if (GETPOST('account_to2','int')) {
+                        if ($account2A>-1) {
                             if (! $error) $result=$accountfrom->add_url_line($bank_line_id_from2, $bank_line_id_to2, DOL_URL_ROOT.'/compta/bank/ligne.php?rowid=', '(banktransfert)', 'banktransfert');
                             if (! ($result > 0)) $error++;
                             if (! $error) $result=$accountto2->add_url_line($bank_line_id_to2, $bank_line_id_from2, DOL_URL_ROOT.'/compta/bank/ligne.php?rowid=', '(banktransfert)', 'banktransfert');
@@ -156,9 +160,9 @@ if ($action == 'add')
 			{
 				$mesg.="<div class=\"ok\">";
 				$mesg.=$langs->trans("TransferFromToDone","<a href=\"account.php?account=".$accountfrom->id."\">".$accountfrom->label."</a>","<a href=\"account.php?account=".$accountto->id."\">".$accountto->label."</a>",$amount,$langs->transnoentities("Currency".$conf->currency));
-                                if (GETPOST('account_to2','int')) {
-				$mesg.="<br/>";
-				$mesg.=$langs->trans("TransferFromToDone","<a href=\"account.php?account=".$accountfrom->id."\">".$accountfrom->label."</a>","<a href=\"account.php?account=".$accountto2->id."\">".$accountto2->label."</a>",$amount2,$langs->transnoentities("Currency".$conf->currency));
+                                if ($account2A>-1) {
+                                    $mesg.="<br/>";
+                                    $mesg.=$langs->trans("TransferFromToDone","<a href=\"account.php?account=".$accountfrom->id."\">".$accountfrom->label."</a>","<a href=\"account.php?account=".$accountto2->id."\">".$accountto2->label."</a>",$amount2,$langs->transnoentities("Currency".$conf->currency));
                                 }
 				$mesg.="</div>";
 				$db->commit();
@@ -187,12 +191,33 @@ llxHeader();
 $form=new Form($db);
 
 $account_from='';
+if (GETPOST('account_from','int')) {
+    $account_from =	GETPOST('account_from','int');
+}
 $account_to='';
+if (GETPOST('account_to','int')) {
+    $account_to =	GETPOST('account_to','int');
+}
 $account_to2=''; //+fte second compte -> commission
+if (GETPOST('account_to2','int')) {
+    $account_to2 =	GETPOST('account_to2','int');
+}
 $label='';
+if (GETPOST('label','alpha')) {
+    $label = GETPOST('label','alpha');
+}
 $amount='';
+if ( GETPOST('amount','int')) {
+    $amount= GETPOST('amount','int');
+}
 $amount2=''; //+fte seconde value -> commission
+if ( GETPOST('amount2','int')) {
+    $amount2= GETPOST('amount2','int');
+}
 $num_chq=''; //+fte
+if (GETPOST('num_chq','alpha')) {
+    $num_chq = GETPOST('num_chq','alpha'); //+fte
+}
 
 if($error)
 {
@@ -219,7 +244,7 @@ print '<input type="hidden" name="action" value="add">';
 
 print '<table class="noborder" width="100%">';
 print '<tr class="liste_titre">';
-print '<td>'.$langs->trans("TransferFrom").'</td><td>'.$langs->trans("TransferTo").'<br/>'.$langs->trans("TransferTo").'2</td><td>'.$langs->trans("Date").'</td><td>'.$langs->trans("Description").'</td><td>'.$langs->trans("Amount").'<br/>'.$langs->trans("Amount").'2</td>';
+print '<td>'.$langs->trans("TransferFrom").'</td><td>'.$langs->trans("TransferTo").'<br/>Sous Opération</td><td>'.$langs->trans("Date").'</td><td>'.$langs->trans("Description").'</td><td>'.$langs->trans("Amount").'<br/></td>';
 print '<td>Num.Vir</td>'; //+fte
 print '</tr>';
 
