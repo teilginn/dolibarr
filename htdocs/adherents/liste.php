@@ -55,6 +55,7 @@ $search_ref=GETPOST("search_ref");
 $search_nom=GETPOST("search_nom");
 $search_prenom=GETPOST("search_prenom");
 $search_login=GETPOST("search_login");
+$search_promo=GETPOST("search_promo");
 $type=GETPOST("type");
 $search_email=GETPOST("search_email");
 $search_categ = GETPOST("search_categ",'int');
@@ -72,18 +73,19 @@ if (! $sortorder) { $sortorder=($filter=='outofdate'?"ASC":"DESC"); }
 if (! $sortfield) { $sortfield=($filter=='outofdate'?"d.datefin":"d.nom"); }
 
 
-if (GETPOST("button_removefilter"))
+if (GETPOST("button_removefilter_x"))
 {
     $search="";
-	$search_ref="";
+    $search_ref="";
     $search_nom="";
-	$search_prenom="";
-	$search_login="";
-	$type="";
-	$search_email="";
-	$search_categ="";
-	$catid="";
-	$sall="";
+    $search_prenom="";
+    $search_login="";
+    $type="";
+    $search_email="";
+    $search_categ="";
+    $search_promo="";
+    $catid="";
+    $sall="";
 }
 
 
@@ -102,18 +104,22 @@ $now=dol_now();
 
 $sql = "SELECT d.rowid, d.login, d.nom as lastname, d.prenom as firstname, d.societe as company, d.fk_soc,";
 $sql.= " d.datefin,";
-if ($conf_aaee) { $sql.= " d.dateh,";}
+//if ($conf_aaee) { $sql.= " d.dateh,";}
 $sql.= " d.email, d.fk_adherent_type as type_id, d.morphy, d.statut,";
 $sql.= " t.libelle as type, t.cotisation";
+$sql.= " , x.PROMO as promo";
+$sql.= " , c.dateadh as dateadh";
 $sql.= " FROM ".MAIN_DB_PREFIX."adherent as d";
 if (! empty($search_categ) || ! empty($catid)) $sql.= ' LEFT JOIN '.MAIN_DB_PREFIX."categorie_member as cm ON d.rowid = cm.fk_member"; // We need this table joined to the select in order to filter by categ
-$sql.= ", ".MAIN_DB_PREFIX."adherent_type as t";
-$sql.= " WHERE d.fk_adherent_type = t.rowid ";
+$sql.= " LEFT JOIN ".MAIN_DB_PREFIX."adherent_extrafields as x ON d.rowid = x.fk_object";
+$sql.= " LEFT JOIN ".MAIN_DB_PREFIX."cotisation as c ON (d.rowid = c.fk_adherent AND d.datefin = c.datef)";
+$sql.= " LEFT JOIN ".MAIN_DB_PREFIX."adherent_type as t";
+$sql.= " ON d.fk_adherent_type = t.rowid ";
+$sql.= " WHERE d.entity = ".$conf->entity;
 if ($catid > 0)    $sql.= " AND cm.fk_categorie = ".$catid;
 if ($catid == -2)  $sql.= " AND cm.fk_categorie IS NULL";
 if ($search_categ > 0)   $sql.= " AND cm.fk_categorie = ".$search_categ;
 if ($search_categ == -2) $sql.= " AND cm.fk_categorie IS NULL";
-$sql.= " AND d.entity = ".$conf->entity;
 if ($sall)
 {
 	$sql.=" AND (";
@@ -126,7 +132,8 @@ if ($type > 0)
 {
 	$sql.=" AND t.rowid=".$type;
 }
-if (isset($_GET["statut"]) || isset($_POST["statut"]))
+#if (isset($_GET["statut"]) || isset($_POST["statut"]))
+if ($statut) 
 {
 	$sql.=" AND d.statut in (".$statut.")";     // Peut valoir un nombre ou liste de nombre separes par virgules
 }
@@ -155,6 +162,10 @@ if ($filter == 'outofdate')
 {
 	$sql.=" AND (datefin IS NULL OR datefin < '".$db->idate($now)."')";
 }
+if ($search_promo )
+{
+    $sql .= " AND x.PROMO IN (".$search_promo.")"; // Peut valoir un nombre ou liste de nombre separes par virgules
+}
 
 // Count total nb of records with no order and no limits
 $nbtotalofrecords = 0;
@@ -176,7 +187,8 @@ if ($resql)
 	$i = 0;
 
 	$titre=$langs->trans("MembersList");
-	if (isset($_GET["statut"]))
+	#if (isset($_GET["statut"]))
+        if ($statut) 
 	{
 		if ($statut == '-1,1') { $titre=$langs->trans("MembersListQualified"); }
 		if ($statut == '-1')   { $titre=$langs->trans("MembersListToValid"); }
@@ -196,12 +208,16 @@ if ($resql)
 		$result=$membertype->fetch($_REQUEST["type"]);
 		$titre.=" (".$membertype->libelle.")";
 	}
-
+$titre = $titre . ":". $nbtotalofrecords;
 	$param="";
-	if (isset($_GET["statut"]))       $param.="&statut=".$statut;
+	#if (isset($_GET["statut"]))       $param.="&statut=".$statut;
+	if ($statut)       $param.="&statut=".$statut;
+	if ($type)         $param.="&type=".$type;
+
 	if ($search_nom)   $param.="&search_nom=".$search_nom;
 	if ($search_login) $param.="&search_login=".$search_login;
 	if ($search_email) $param.="&search_email=".$search_email;
+	if ($search_promo) $param.="&search_promo=".$search_promo;
 	if ($filter)       $param.="&filter=".$filter;
 	print_barre_liste($titre,$page,$_SERVER["PHP_SELF"],$param,$sortfield,$sortorder,'',$num,$nbtotalofrecords);
 
@@ -210,7 +226,9 @@ if ($resql)
 		print $langs->trans("Filter")." (".$langs->trans("Ref").", ".$langs->trans("Lastname").", ".$langs->trans("Firstname").", ".$langs->trans("EMail").", ".$langs->trans("Address")." ".$langs->trans("or")." ".$langs->trans("Town")."): ".$sall;
 	}
 
-	print '<form method="GET" action="'.$_SERVER["PHP_SELF"].'">';
+        print '<form method="GET" action="'.$_SERVER["PHP_SELF"].'">';
+        if ($statut) print '<input type="hidden" name="statut" value="'.$statut.'">';
+        if ($filter) print '<input type="hidden" name="filter" value="'.$filter.'">';
 	print "<table class=\"noborder\" width=\"100%\">";
 
 	// Filter on categories
@@ -231,21 +249,23 @@ if ($resql)
 
 	print '<tr class="liste_titre">';
         if(!$conf_aaee) //+AAEE: Remove Reference from list ----------------
-	print_liste_field_titre($langs->trans("Ref"),$_SERVER["PHP_SELF"],"d.rowid",$param,"","",$sortfield,$sortorder);
+	    print_liste_field_titre($langs->trans("Ref"),$_SERVER["PHP_SELF"],"d.rowid",$param,"","",$sortfield,$sortorder);
+	print_liste_field_titre($langs->trans("Adhesion"),$_SERVER["PHP_SELF"],"c.dateadh",$param,"","",$sortfield,$sortorder);
 	print_liste_field_titre($langs->trans("Name")." / ".$langs->trans("Company"),$_SERVER["PHP_SELF"],"d.nom",$param,"","",$sortfield,$sortorder);
         if(!$conf_aaee) //+AAEE: Remove Login from list --------------------
-	print_liste_field_titre($langs->trans("Login"),$_SERVER["PHP_SELF"],"d.login",$param,"","",$sortfield,$sortorder);
+	    print_liste_field_titre($langs->trans("Login"),$_SERVER["PHP_SELF"],"d.login",$param,"","",$sortfield,$sortorder);
 	print_liste_field_titre($langs->trans("Type"),$_SERVER["PHP_SELF"],"t.libelle",$param,"","",$sortfield,$sortorder);
-	print_liste_field_titre($langs->trans("Person"),$_SERVER["PHP_SELF"],"d.morphy",$param,"","",$sortfield,$sortorder);
+	print_liste_field_titre($langs->trans("Promo"),$_SERVER["PHP_SELF"],"promo",$param,"","",$sortfield,$sortorder);
         if(!$conf_aaee) //+AAEE: Remove Email from list --------------------
-	print_liste_field_titre($langs->trans("EMail"),$_SERVER["PHP_SELF"],"d.email",$param,"","",$sortfield,$sortorder);
-	print_liste_field_titre($langs->trans("Status"),$_SERVER["PHP_SELF"],"d.statut,d.datefin",$param,"","",$sortfield,$sortorder);
+	    print_liste_field_titre($langs->trans("EMail"),$_SERVER["PHP_SELF"],"d.email",$param,"","",$sortfield,$sortorder);
+	print_liste_field_titre($langs->trans("Status"),$_SERVER["PHP_SELF"],"d.statut",$param,"","",$sortfield,$sortorder);
 	print_liste_field_titre($langs->trans("EndSubscription"),$_SERVER["PHP_SELF"],"d.datefin",$param,"",'align="center"',$sortfield,$sortorder);
 	print_liste_field_titre($langs->trans("Action"),$_SERVER["PHP_SELF"],"",$param,"",'width="60" align="center"',$sortfield,$sortorder);
 	print "</tr>\n";
 
 	// Lignes des champs de filtre
 	print '<tr class="liste_titre">';
+	print '<td align="right" colspan="1" class="liste_titre">';
 
         if(!$conf_aaee) { //+AAEE: Remove Reference from list --------------
 	print '<td class="liste_titre" align="left">';
@@ -255,24 +275,29 @@ if ($resql)
 	print '<td class="liste_titre" align="left">';
 	print '<input class="flat" type="text" name="search_nom" value="'.$search_nom.'" size="12"></td>';
 
-
         if(!$conf_aaee) { //+AAEE: Remove Login from list ------------------
 	print '<td class="liste_titre" align="left">';
 	print '<input class="flat" type="text" name="search_login" value="'.$search_login.'" size="7"></td>';
         } //+AAEE: Remove Login from list ----------------------------------
 
+        // Etat cotisant
 	print '<td class="liste_titre">';
 	$listetype=$membertypestatic->liste_array();
 	print $form->selectarray("type", $listetype, $type, 1, 0, 0, '', 0, 32);
-	print '</td>';
+        print '</td>';
 
-	print '<td class="liste_titre">&nbsp;</td>';
-
+        // Promo
+	//print '<td class="liste_titre">&nbsp;</td>';
 	print '<td class="liste_titre" align="left">';
-	print '<input class="flat" type="text" name="search_email" value="'.$search_email.'" size="12"></td>';
+	print '<input class="flat" type="text" name="search_promo" value="'.$search_promo.'" size="7"></td>';
 
+        if(!$conf_aaee) { //+AAEE: Remove Email from list --------------------
+	    print '<td class="liste_titre" align="left">';
+	    print '<input class="flat" type="text" name="search_email" value="'.$search_email.'" size="12"></td>';
+        }
+        // Date Fin Cotiz
 	print '<td class="liste_titre">&nbsp;</td>';
-
+        // Actions
 	print '<td align="right" colspan="2" class="liste_titre">';
 	print '<input type="image" class="liste_titre" src="'.DOL_URL_ROOT.'/theme/'.$conf->theme.'/img/search.png" name="button_search" value="'.dol_escape_htmltag($langs->trans("Search")).'" title="'.dol_escape_htmltag($langs->trans("Search")).'">';
 	print '&nbsp; ';
@@ -313,6 +338,14 @@ if ($resql)
 		print $memberstatic->getNomUrl(1);
 		print "</td>\n";
                 } //+AAEE: Remove Reference from list ----------------------
+                $dateadh = $objp->dateadh;
+                print '<td align="center" nowrap="nowrap">';
+                if ($dateadh) {
+			print dol_print_date($dateadh,'day');
+                } else {
+                    print "&nbsp;";
+                }
+                print "</td>";
 
 		// Lastname
 		print "<td><a href=\"fiche.php?rowid=$objp->rowid\">";
@@ -339,8 +372,12 @@ if ($resql)
 		print $membertypestatic->getNomUrl(!$conf_aaee,32);//+AEEE:Remove icon ---
 		print '</td>';
 
+                if(!$conf_aaee) { //+AAEE: Remove Login from list ----------
 		// Moral/Physique
 		print "<td>".$memberstatic->getmorphylib($objp->morphy)."</td>\n";
+                } else {
+		print "<td>".$objp->promo."</td>\n";
+                }
 
 
                 if(!$conf_aaee) { //+AAEE: Remove Email from list ----------
